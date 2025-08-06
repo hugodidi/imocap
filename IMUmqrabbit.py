@@ -32,9 +32,6 @@ class IMU:
         self.gXread = []
         self.gYread = []
         self.gZread = []
-        self.mXread = []
-        self.mYread = []
-        self.mZread = []
         self.aX0 = []
         self.aY0 = []
         self.aZ0 = []
@@ -88,7 +85,6 @@ class IMU:
 
         ###
 
-        self.mag_cal = False
         self.Qt_w= []
         self.Qt_x= []
         self.Qt_y= []
@@ -102,28 +98,28 @@ class IMU:
         self.Yaw = []
 
 
-    def MadgwickMagPrediction(self,qt_1, dq, beta, Ebt, Sm):
-        qw, qx, qy, qz= qt_1
-        bw, bx, by, bz = Ebt
-        mx, my, mz = Sm
-        #fb
-        f1=2*bx*(1/2-qy**2-qz**2)+2*bz*(qx*qz-qw*qy)-mx
-        f2=2*bx*(qx*qy-qw*qz)+2*bz*(qw*qx+qy*qz)-my
-        f3=2*bx*(qw*qy+qx*qz)+2*bz*(1/2-qx**2-qy**2)-mz
-        fb = np.array([[f1],[f2],[f3]])
-        #Jb
-        Jb = np.array([
-            [-2*bz*qy, 2*bz*qz, -4*bx*qy-2*bz*qw, -4*bx*qz+2*bz*qx],
-            [-2*bx*qz+2*bz*qx, 2*bx*qy+2*bz*qw, 2*bx*qx+2*bz*qz, -2*bx*qw+2*bz*qy],
-            [2*bx*qy, 2*bx*qz-4*bz*qx, 2*bx*qw-4*bz*qy, 2*bx*qx]
-            ])
-        Jb = Jb.T
+    # def MadgwickMagPrediction(self,qt_1, dq, beta, Ebt, Sm):
+    #     qw, qx, qy, qz= qt_1
+    #     bw, bx, by, bz = Ebt
+    #     mx, my, mz = Sm
+    #     #fb
+    #     f1=2*bx*(1/2-qy**2-qz**2)+2*bz*(qx*qz-qw*qy)-mx
+    #     f2=2*bx*(qx*qy-qw*qz)+2*bz*(qw*qx+qy*qz)-my
+    #     f3=2*bx*(qw*qy+qx*qz)+2*bz*(1/2-qx**2-qy**2)-mz
+    #     fb = np.array([[f1],[f2],[f3]])
+    #     #Jb
+    #     Jb = np.array([
+    #         [-2*bz*qy, 2*bz*qz, -4*bx*qy-2*bz*qw, -4*bx*qz+2*bz*qx],
+    #         [-2*bx*qz+2*bz*qx, 2*bx*qy+2*bz*qw, 2*bx*qx+2*bz*qz, -2*bx*qw+2*bz*qy],
+    #         [2*bx*qy, 2*bx*qz-4*bz*qx, 2*bx*qw-4*bz*qy, 2*bx*qx]
+    #         ])
+    #     Jb = Jb.T
         
-        gradF = np.dot(Jb,fb)/np.linalg.norm(np.dot(Jb,fb))
-        dQmag = np.dot(beta,gradF)
-        dQmag = np.array([dQmag[0][0],dQmag[1][0],dQmag[2][0],dQmag[3][0]])
-        dQmag = (dq - dQmag)*self.dt
-        return dQmag
+    #     gradF = np.dot(Jb,fb)/np.linalg.norm(np.dot(Jb,fb))
+    #     dQmag = np.dot(beta,gradF)
+    #     dQmag = np.array([dQmag[0][0],dQmag[1][0],dQmag[2][0],dQmag[3][0]])
+    #     dQmag = (dq - dQmag)*self.dt
+    #     return dQmag
     
     def plotQuat(self,w,x,y,z,name:str):
         sample_interval = 0.01
@@ -161,26 +157,19 @@ class IMU:
         plt.grid(True)
 
     def readData(self,data_to_process):
-        #print(str(data_to_process))
-        if len(data_to_process) == 13:
+        print(str(data_to_process))
+        if len(data_to_process) == 6:
             self.aXread=float(data_to_process[0])*9.80665/16384
             self.aYread=float(data_to_process[1])*9.80665/16384
             self.aZread=float(data_to_process[2])*9.80665/16384
             self.gXread=float(data_to_process[3])*math.pi/(131*180)
             self.gYread=float(data_to_process[4])*math.pi/(131*180)
             self.gZread=float(data_to_process[5])*math.pi/(131*180)
-            self.mXread=float(data_to_process[6])*0.15
-            self.mYread=float(data_to_process[7])*0.15
-            self.mZread=float(data_to_process[8])*0.15
-            self.Temp.append((float(data_to_process[9])/333.87)+21)
-            self.num= int(data_to_process[10])     
-            # self.time_cicle.append(data_to_process[11])
-            self.time_cicle.append(self.conteo*10+10) #provisional
-        #print(str(self.time_cicle))
+            print(self.aXread, self.aYread, self.aZread, self.gXread, self.gYread, self.gZread)
+            self.time_cicle.append(self.conteo*10+10) 
         if len(self.time_cicle) == 2:
             self.dt = (self.time_cicle[1]-self.time_cicle[0])/1000
             self.time_cicle.pop(0)
-        self.time_block = int(data_to_process[12])
     
     def initialCalibration(self, datos):
         self.readData(datos)
@@ -190,9 +179,6 @@ class IMU:
         self.gX0.append(self.gXread)
         self.gY0.append(self.gYread)
         self.gZ0.append(self.gZread)
-        self.mX0.append(self.mXread)
-        self.mY0.append(self.mYread)
-        self.mZ0.append(self.mZread)
         
     def Euler2Q(self, phi, theta, psi):
         sinPhi = np.sin(phi/2)
@@ -234,6 +220,7 @@ class IMU:
         self.quaternion[1].append(q2/normQ)
         self.quaternion[2].append(q3/normQ)
         self.quaternion[3].append(q4/normQ)
+
     def quatProduct(self,Q,P):
         w = Q[0]*P[0] - Q[1]*P[1] - Q[2]*P[2] - Q[3]*P[3]
         x = Q[0]*P[1] + Q[1]*P[0] + Q[2]*P[3] - Q[3]*P[2]
@@ -241,6 +228,7 @@ class IMU:
         z = Q[0]*P[3] + Q[1]*P[2] - Q[2]*P[1] + Q[3]*P[0]
         Qf= np.array([w,x,y,z])
         return Qf
+    
     def Q2Euler(self,q1,q2,q3,q4):
         argPhi1 = 2*(q3*q4 + q1*q2)
         argPhi2 = 1 - 2*(q2*q2 + q3*q3)
@@ -256,6 +244,7 @@ class IMU:
             theta = np.arcsin(argTheta)
         psi = np.arctan2(argPsi1, argPsi2)
         return phi,theta,psi
+    
     def rotate_vector_inverted(self,vector,Q):
         #quat rotation matrix
         RQt = np.array([[Q[0]**2+Q[1]**2-Q[2]**2-Q[3]**2, 2*(Q[1]*Q[2]-Q[0]*Q[3]), 2*(Q[1]*Q[3]+Q[0]*Q[2])],
@@ -268,6 +257,7 @@ class IMU:
         inverse_rotated_vector = np.dot(RQt_T, vector)
 
         return inverse_rotated_vector
+    
     def rotate_vector(self,vector,Q):
         #quat rotation matrix
         RQt = np.array([[Q[0]**2+Q[1]**2-Q[2]**2-Q[3]**2, 2*(Q[1]*Q[2]-Q[0]*Q[3]), 2*(Q[1]*Q[3]+Q[0]*Q[2])],
@@ -278,6 +268,7 @@ class IMU:
         rotated_vector = np.dot(RQt, vector)
 
         return rotated_vector
+    
     def adaptative_alpha(self,acc_v,max_alpha = 0.2,G= 9.80665):   
         L_norm= np.linalg.norm(acc_v)
         e_m= abs(L_norm-G)/G
@@ -289,23 +280,6 @@ class IMU:
             gain_factor = 0
         alpha= max_alpha * gain_factor
         return alpha
-    def plotQuat(self,w,x,y,z,name:str):
-        sample_interval = 0.01
-        n = len(x)
-        t = np.arange(n) * sample_interval
-        plt.figure()
-        plt.plot(t, w,  label=f'q[w]')
-        plt.plot(t, x,  label=f'q[x]')
-        plt.plot(t, y,  label=f'q[y]')
-        plt.plot(t, z,  label=f'q[z]')
-        # Etiquetas y título
-        plt.xlabel("Tiempo (s)")
-        plt.ylabel("Value")
-        plt.title(name)
-
-        # Leyenda y rejilla
-        plt.legend()
-        plt.grid(True)    
     
     def update(self):
         aX = self.aXread
@@ -315,11 +289,6 @@ class IMU:
         p = self.gXread - self.g0[0]
         q = self.gYread - self.g0[1]
         r = self.gZread - self.g0[2]
-        mX = self.mXread
-        mY = self.mYread
-        mZ = self.mZread
-        mag = [mX, mY, mZ]
-        w_q = np.array([0, p, q, r])
         
         #Predicción cuaternión G->L
         qt_1 = np.array([self.quaternion[0][-1], self.quaternion[1][-1], self.quaternion[2][-1],self.quaternion[3][-1]])
@@ -327,9 +296,9 @@ class IMU:
         dQ = np.dot(omegaW, qt_1)
         Qt = qt_1 + dQ*self.dt
         
-        #Consideración para la IMU 4 (Revisar)
-        if self.key_binding == "GROOT_04":
-            acc = [aX, aZ, aY]
+        # #Consideración para la IMU 4 (Revisar)
+        # if self.key_binding == "GROOT_04":
+        #     acc = [aX, aZ, aY]
 
         #Predicción del vector gravedad
         gGp = self.rotate_vector_inverted(acc, Qt)         
@@ -372,52 +341,12 @@ class IMU:
         Qpost = self.quatProduct(Qt,dQacc_est)
         wpost, xpost, ypost, zpost = Qpost
         w, x, y, z = Qpost #en caso de desactivar el magnetómetro, aqui se toma el quaternion final
-        
-        if self.mag_cal == True:
-            Qpost = np.array([wpost, xpost, ypost, zpost])
-                    
-            Eh= self.rotate_vector(mag,Qpost) 
 
-            Eb0 = 0
-            Eb1 = np.sqrt(Eh[0]**2+Eh[1]**2)
-            Eb2 = 0
-            Eb3 = Eh[2]
-            Eb = np.array([Eb0,Eb1,Eb2,Eb3])
-
-            #Predicción del corrector magnético
-            mean_g0= (self.g0[0] + self.g0[1] + self.g0[2])/ 3
-            beta = np.sqrt(3/4)* mean_g0
-
-            Qmag= self.MadgwickMagPrediction(qt_1, dQ, beta, Eb, mag)
-            dQmag= Qmag
-
-            #Normalización del cuaternión de corrección magnética
-            alphaMAG= 0.05
-            alpha= alphaMAG
-            #LERP
-            if dQmag[0] > threshold:
-                dQmag_m = (1-alpha)*qI +alpha*dQmag
-                dQmag_est = dQmag_m / np.linalg.norm(dQmag_m)
-
-            #SLERP
-            else:
-                dot_product = np.dot(qI, dQmag)
-                norm_I = np.linalg.norm(qI)
-                norm_dQmag = np.linalg.norm(dQmag)
-
-                cos_theta = dot_product / (norm_I * norm_dQmag)
-                theta = np.arccos(cos_theta)
-                sin_theta = np.sin(theta)
-                sin_a_theta= np.sin(alpha*theta)
-                sin_1a_theta = np.sin((1-alpha)*theta)
-
-                dQmag_m = (sin_1a_theta/sin_theta)*qI + (sin_a_theta/sin_theta)*dQmag
-                dQmag_est = dQmag_m / np.linalg.norm(dQmag_m)
-
-            Qf= self.quatProduct(Qpost,dQmag_est)
-            w, x, y, z= Qf
-        
-        #normalización cuaternión final
+        #---------------------------------------------------------------------------
+        #Aqui iba el código de corrección por magnetómetro.
+        #---------------------------------------------------------------------------
+                 
+        #Quaternion final normalizado
         Qf= np.array([w,x,y,z])
         Qfnorm= np.linalg.norm(Qf)
         w = w/Qfnorm
@@ -425,6 +354,7 @@ class IMU:
         y = y/Qfnorm
         z = z/Qfnorm 
         
+        #Guardar Quaternion
         self.quaternion[0].append(w)
         self.quaternion[1].append(x)
         self.quaternion[2].append(y)

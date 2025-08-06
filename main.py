@@ -62,14 +62,14 @@ IMUnames = ['GROOT_01', 'GROOT_02', 'GROOT_03', 'GROOT_04', 'GROOT_05', 'GROOT_0
 # Función para iniciar el receptor de datos desde RabbitMQ
 def start_receiver(binding_keys, stop_event, main_event):
     try:
-        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 512)
+        # client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # client_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        # client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 512)
         time.sleep(5)
         print("Socket con Unity creado correctamente.")
         print("Conectando con Unity...")
         try:
-            client_socket.connect((host, port))
+            # client_socket.connect((host, port))
             pass
         except (ConnectionRefusedError, OSError) as e:
             print(f"No se pudo conectar a Unity: {e}")
@@ -101,7 +101,7 @@ def start_receiver(binding_keys, stop_event, main_event):
                 print(message)
 
                 try:
-                    client_socket.sendall(message.encode())
+                    # client_socket.sendall(message.encode())
                     sys.stdout.flush() 
                     time.sleep(0.01) 
                 except (BrokenPipeError, ConnectionResetError, OSError) as e:
@@ -146,12 +146,12 @@ def start_receiver(binding_keys, stop_event, main_event):
         except UnboundLocalError:
             print("La conexión de RabbitMQ no fue creada")
 
-        if client_socket:
-           try:
-               client_socket.close()
-               print("Socket con Unity cerrado.")
-           except Exception as e:
-               print(f"Error cerrando socket con Unity: {e}")
+        # if client_socket:
+        #    try:
+        #        client_socket.close()
+        #        print("Socket con Unity cerrado.")
+        #    except Exception as e:
+        #        print(f"Error cerrando socket con Unity: {e}")
         return
 def proceso_imu(nombre, stop_event):
     try:

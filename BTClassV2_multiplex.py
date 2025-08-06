@@ -65,7 +65,7 @@ class BluetoothMultiplexer(threading.Thread):
         """Callback para manejar datos recibidos de las IMUs."""
         try:
             # Desempaquetar los datos de la IMU
-            unpacked_data = struct.unpack('>hhhhhhhhhhIbb', data)
+            unpacked_data = struct.unpack('>hhhhhh', data) #Corregido para IMUs solo acc y gyro
             #print(data[7])
             #print (str(unpacked_data))
             # Enviar los datos al exchange de RabbitMQ
