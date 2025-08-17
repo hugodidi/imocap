@@ -7,7 +7,7 @@ import math
 import numpy as np
 from datetime import datetime
 from BTClassV2_multiplex import BluetoothMultiplexer
-from IMUmqrabbit import IMU
+from AlgoritmoEstimador import IMU
 import asyncio
 import queue
 import time
