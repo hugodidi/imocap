@@ -97,7 +97,7 @@ def start_receiver(binding_keys, stop_event, main_event):
                 qw,qx,qy,qz = values
 
                 ## Lite message version
-                message = f"{qx},{qy},{-qz},{qw}\n"
+                message = f"{qx},{qy},{qz},{qw}\n"
                 print(message)
 
                 try:

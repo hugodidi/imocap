@@ -159,13 +159,13 @@ class IMU:
     def readData(self,data_to_process):
         print(str(data_to_process))
         if len(data_to_process) == 6:
-            self.aXread=float(data_to_process[0])*9.80665/16384
-            self.aYread=float(data_to_process[1])*9.80665/16384
-            self.aZread=float(data_to_process[2])*9.80665/16384
-            self.gXread=float(data_to_process[3])*math.pi/(131*180)
-            self.gYread=float(data_to_process[4])*math.pi/(131*180)
-            self.gZread=float(data_to_process[5])*math.pi/(131*180)
-            print(self.aXread, self.aYread, self.aZread, self.gXread, self.gYread, self.gZread)
+            self.aXread=float(data_to_process[0])/16384
+            self.aYread=float(data_to_process[1])/16384
+            self.aZread=float(data_to_process[2])/16384
+            self.gXread=float(data_to_process[3])/131
+            self.gYread=float(data_to_process[4])/131
+            self.gZread=float(data_to_process[5])/131
+            #print(self.aXread, self.aYread, self.aZread)
             self.time_cicle.append(self.conteo*10+10) 
         if len(self.time_cicle) == 2:
             self.dt = (self.time_cicle[1]-self.time_cicle[0])/1000
@@ -339,7 +339,7 @@ class IMU:
 
         #Quaternion corregido por acc
         Qpost = self.quatProduct(Qt,dQacc_est)
-        wpost, xpost, ypost, zpost = Qpost
+        # wpost, xpost, ypost, zpost = Qpost
         w, x, y, z = Qpost #en caso de desactivar el magnetómetro, aqui se toma el quaternion final
 
         #---------------------------------------------------------------------------
