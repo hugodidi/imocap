@@ -7,7 +7,7 @@ import math
 import numpy as np
 from datetime import datetime
 from BTClassV2_multiplex import BluetoothMultiplexer
-from AlgoritmoEstimador import IMU
+from AttitudeEstimator import IMU
 import asyncio
 import queue
 import time
@@ -20,28 +20,32 @@ import psutil
 import winrt
 import winrt.windows.foundation
 import winrt.windows.foundation.collections
-# Configuración de conexión con Unity
+
+#Configuración de conexión con Unity (LOCAL)
 host = '127.0.0.1'
 port = 25001
 
+#Función para instalar RabbitMQ y Erlang si no están instalados 
 def install_rabbitmq(mqrabbit, erlang):
     if not os.path.exists("C:\\Program Files\\RabbitMQ Server"):
         print("Instalando RabbitMQ...")
         subprocess.run([erlang, "/S"], check=True)  # Instala Erlang
         subprocess.run([mqrabbit, "/S"], check=True)  # Instala RabbitMQ
         print("Instalación completada. Reinicia el sistema si es necesario.")
+#Función para verificar si el script ya está en ejecución
 def is_already_running():
     if os.path.exists(LOCK_FILE):
         return True
     open(LOCK_FILE,'w').close()
     return False
+#Función para limpiar el archivo de bloqueo al finalizar
 def cleanup():
     if os.path.exists(LOCK_FILE):
         os.remove(LOCK_FILE)
 
 cal = 0
 qz_prev = 0
-# Manejo de Paths para PyInstaller
+#Manejo de Paths para PyInstaller
 def get_script_dir(relative_path):
     if getattr(sys, 'frozen', False):  # Detecta si es un ejecutable
         base_path = sys._MEIPASS if hasattr(sys, '__MEISPASS') else os.path.dirname(sys.executable)
@@ -49,17 +53,33 @@ def get_script_dir(relative_path):
         base_path = os.path.dirname(__file__)
     return os.path.join(base_path, relative_path)
 
-#unity_exe = get_script_dir("250312Windows_exe/My project (3).exe")
+#Instalación de RabbitMQ y Erlang
 installer_mqrabbit = get_script_dir("Install/rabbitmq-server-4.0.6.exe")
 installer_erlang = get_script_dir("Install/otp_win64_27.2.4.exe")
 install_rabbitmq(installer_mqrabbit, installer_erlang)
 
+# Crear carpeta de datos de la aplicación si no existe
 appdata_folder = os.path.join(os.getenv("LOCALAPPDATA"), "nMotion")
 os.makedirs(appdata_folder, exist_ok=True)
 LOCK_FILE = os.path.join(appdata_folder, "script.lock")
+
+# Lista de nombres de IMUs
 IMUnames = ['GROOT_01', 'GROOT_02', 'GROOT_03', 'GROOT_04', 'GROOT_05', 'GROOT_06', 'GROOT_07']
 
-# Función para iniciar el receptor de datos desde RabbitMQ
+# Función que inicia el proceso de calibración para cada IMU
+def proceso_imu(nombre, stop_event):
+    try:
+        imu = IMU(nombre)
+        imu.run()
+        while not stop_event.is_set():
+            time.sleep(0.1)
+    except Exception as e:
+        print(f"Error en IMU {nombre}: {e}")
+    finally:
+        imu.stop()
+        print(f"IMU {nombre} terminada")
+
+# Receptor de datos de orietación y distribución a Unity
 def start_receiver(binding_keys, stop_event, main_event):
     try:
         # client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -153,37 +173,14 @@ def start_receiver(binding_keys, stop_event, main_event):
         #    except Exception as e:
         #        print(f"Error cerrando socket con Unity: {e}")
         return
-def proceso_imu(nombre, stop_event):
-    try:
-        imu = IMU(nombre)
-        imu.run()
-        while not stop_event.is_set():
-            time.sleep(0.1)
-    except Exception as e:
-        print(f"Error en IMU {nombre}: {e}")
-    finally:
-        imu.stop()
-        print(f"IMU {nombre} terminada")
 
-# def unity_running():
-#     for process in psutil.process_iter(attrs=['pid', 'name']):
-#         if "Unity" in process.info['name']: 
-#             print(f"Unity ya está en ejecución (PID {process.info['pid']}). No se lanzará otra instancia.")
-#             return True
-#     return False
-# def launch_unity():
-#     """ Lanza Unity solo si no está ya corriendo """
-#     if not unity_running():
-#         print("Lanzando Unity...")
-#         subprocess.Popen([unity_exe], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-#         time.sleep(5)  # 🟢 Esperar unos segundos para que Unity arranque
-#         print("Unity lanzado correctamente.")
-#     else:
-#         print("Unity ya está en ejecución, no es necesario lanzarlo.")
+
 def main():
     try:
-        stop_event = multiprocessing.Event()
-        main_event = multiprocessing.Event()
+        stop_event = multiprocessing.Event() #Evento para marcar el final de los procesos de cálculo
+        main_event = multiprocessing.Event() #Evento para marcar el final del proceso de recepción 
+
+        # Activación del ciclo BLE y lanzamiento de procesos simultáneos
         procesos_imu=[]
         bluetooth_receiver = BluetoothMultiplexer(IMUnames)
         print("Inicializando Bluetooth e IMUs...")
@@ -193,11 +190,16 @@ def main():
             p = multiprocessing.Process(target=proceso_imu, args=(imu,stop_event))
             p.start()
             procesos_imu.append(p)
+
+        #Iniciar el receptor de datos de orientación y distribución a Unity
         proceso = multiprocessing.Process(target=start_receiver, args=(IMUnames,stop_event, main_event))
         proceso.start()
-        main_event.wait()
-        proceso.join(timeout=5)
 
+        main_event.wait() #Espera a que el proceso de recepción termine
+
+        #Cierre de procesos
+
+        proceso.join(timeout=5)
         if proceso.is_alive():
             proceso.terminate()
             proceso.join()
@@ -231,13 +233,17 @@ if __name__ == "__main__":
     multiprocessing.freeze_support()
 
     try:
+        
+        ###### PROBAR A COMENTAR ESTO
         print("INICIANDO CALIBRACIÓN. EVITE MOVERSE")
         #launch_unity()
         time.sleep(10)
         if is_already_running():
             sys.exit(0)
+        ######
+
         main()
-    
+            
     except Exception as e:
         print(f"Error: {e}")
     

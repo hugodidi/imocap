@@ -6,6 +6,7 @@ import pika
 import json
 import threading
 import sys
+import math
 
 class BluetoothMultiplexer(threading.Thread):
     def __init__(self, imu_names):
@@ -65,10 +66,18 @@ class BluetoothMultiplexer(threading.Thread):
         """Callback para manejar datos recibidos de las IMUs."""
         try:
             # Desempaquetar los datos de la IMU
-            unpacked_data = struct.unpack('>hhhhhh', data) #Corregido para IMUs solo acc y gyro
+            unpacked_data = struct.unpack('<hhhhhhhhh', data) 
             #print(data[7])
-            #print (str(unpacked_data))
-            # Enviar los datos al exchange de RabbitMQ
+            # print(unpacked_data)
+            # print(round(unpacked_data[3]*9.80665/16384,2),"\t",
+            #       round(unpacked_data[4]*9.80665/16384,2),"\t",
+            #       round(unpacked_data[5]*9.80665/16384,2),"\t",
+            #       round(unpacked_data[6]*math.pi/(131*180),2),"\t",
+            #       round(unpacked_data[7]*math.pi/(131*180),2),"\t",
+            #       round(unpacked_data[8]*math.pi/(131*180),2)
+            #       )
+
+            # Enviar los datos al exchange
             channel = self.clients[device_name]["channel"]
             routing_key = device_name  # Cada IMU utiliza su nombre como routing key
             channel.basic_publish(
