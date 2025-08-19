@@ -157,20 +157,30 @@ class IMU:
         plt.grid(True)
 
     def readData(self,data_to_process):
-        print(str(data_to_process))
-        if len(data_to_process) == 6:
-            self.aXread=float(data_to_process[0])/16384
-            self.aYread=float(data_to_process[1])/16384
-            self.aZread=float(data_to_process[2])/16384
-            self.gXread=float(data_to_process[3])/131
-            self.gYread=float(data_to_process[4])/131
-            self.gZread=float(data_to_process[5])/131
-            #print(self.aXread, self.aYread, self.aZread)
-            self.time_cicle.append(self.conteo*10+10) 
+        #print(str(data_to_process))
+        if len(data_to_process) == 9:
+            self.mXread=float(data_to_process[0])*0.15
+            self.mYread=float(data_to_process[1])*0.15
+            self.mZread=float(data_to_process[2])*0.15
+            self.aXread=float(data_to_process[3])*9.80665/16384
+            self.aYread=float(data_to_process[4])*9.80665/16384
+            self.aZread=float(data_to_process[5])*9.80665/16384
+            self.gXread=float(data_to_process[6])*math.pi/(131*180)
+            self.gYread=float(data_to_process[7])*math.pi/(131*180)
+            self.gZread=float(data_to_process[8])*math.pi/(131*180)
+            # print(round(self.aXread,2),"\t",
+                #   round(self.aYread,2),"\t",
+                #   round(self.aZread,2),"\t",
+                #   round(self.gXread,2),"\t",
+                #   round(self.gYread,2),"\t",
+                #   round(self.gZread,2))
+            # self.time_cicle.append(data_to_process[11])
+            self.time_cicle.append(self.conteo*10+10) #provisional
+        #print(str(self.time_cicle))
         if len(self.time_cicle) == 2:
             self.dt = (self.time_cicle[1]-self.time_cicle[0])/1000
             self.time_cicle.pop(0)
-    
+
     def initialCalibration(self, datos):
         self.readData(datos)
         self.aX0.append(self.aXread)
@@ -179,6 +189,9 @@ class IMU:
         self.gX0.append(self.gXread)
         self.gY0.append(self.gYread)
         self.gZ0.append(self.gZread)
+        self.mX0.append(self.mXread)
+        self.mY0.append(self.mYread)
+        self.mZ0.append(self.mZread)
         
     def Euler2Q(self, phi, theta, psi):
         sinPhi = np.sin(phi/2)
@@ -362,7 +375,7 @@ class IMU:
     
         thetaF, phiF, psiF = self.Q2Euler(w,x,y,z)
         dt_var = (self.time_cicle[0] - self.time_zero)/1000
-        #print(float(round(thetaF*180/np.pi,2)),'; ',float(round(phiF*180/np.pi,2)),'; ', float(round(psiF*180/np.pi,2)))
+        # print(float(round(thetaF*180/np.pi,2)),'; ',float(round(phiF*180/np.pi,2)),'; ', float(round(psiF*180/np.pi,2)))
         self.dt_save.append(dt_var)
         # self.Datawrite_sync[0] = float(w)
         # self.Datawrite_sync[1] = float(x)

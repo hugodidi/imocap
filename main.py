@@ -64,7 +64,7 @@ os.makedirs(appdata_folder, exist_ok=True)
 LOCK_FILE = os.path.join(appdata_folder, "script.lock")
 
 # Lista de nombres de IMUs
-IMUnames = ['GROOT_01', 'GROOT_02', 'GROOT_03', 'GROOT_04', 'GROOT_05', 'GROOT_06', 'GROOT_07']
+IMUnames = ['GROOT_99', 'GROOT_01', 'GROOT_02', 'GROOT_03', 'GROOT_04', 'GROOT_05', 'GROOT_06', 'GROOT_07']
 
 # Función que inicia el proceso de calibración para cada IMU
 def proceso_imu(nombre, stop_event):
@@ -118,7 +118,7 @@ def start_receiver(binding_keys, stop_event, main_event):
 
                 ## Lite message version
                 message = f"{qx},{qy},{qz},{qw}\n"
-                print(message)
+                # print(message)
 
                 try:
                     # client_socket.sendall(message.encode())
@@ -239,7 +239,8 @@ if __name__ == "__main__":
         #launch_unity()
         time.sleep(10)
         if is_already_running():
-            sys.exit(0)
+            cleanup()
+            # sys.exit(0)
         ######
 
         main()
