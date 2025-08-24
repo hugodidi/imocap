@@ -53,7 +53,7 @@ def get_script_dir(relative_path):
         base_path = os.path.dirname(__file__)
     return os.path.join(base_path, relative_path)
 
-#Instalación de RabbitMQ y Erlang
+#Instalación discreta de RabbitMQ y Erlang
 installer_mqrabbit = get_script_dir("Install/rabbitmq-server-4.0.6.exe")
 installer_erlang = get_script_dir("Install/otp_win64_27.2.4.exe")
 install_rabbitmq(installer_mqrabbit, installer_erlang)
@@ -186,6 +186,7 @@ def main():
         print("Inicializando Bluetooth e IMUs...")
         bluetooth_receiver.start()
         print("Bluetooth inicializado correctamente")
+        print("INICIANDO CALIBRACIÓN. EVITE MOVERSE")
         for imu in IMUnames:
             p = multiprocessing.Process(target=proceso_imu, args=(imu,stop_event))
             p.start()
@@ -223,7 +224,6 @@ def main():
         if proceso and proceso.is_alive():
             proceso.terminate()
             proceso.join()
-        
 
         cleanup()
         sys.exit(0)
@@ -233,16 +233,9 @@ if __name__ == "__main__":
     multiprocessing.freeze_support()
 
     try:
-        
-        ###### PROBAR A COMENTAR ESTO
-        print("INICIANDO CALIBRACIÓN. EVITE MOVERSE")
         #launch_unity()
-        time.sleep(10)
         if is_already_running():
             cleanup()
-            # sys.exit(0)
-        ######
-
         main()
             
     except Exception as e:
@@ -252,4 +245,3 @@ if __name__ == "__main__":
         print("Cerrando procesos...")
         print("Procesos finalizados correctamente.")
         cleanup()
-        

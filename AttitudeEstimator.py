@@ -82,7 +82,7 @@ class IMU:
         self.running = True
         self.calibration = False
         self.num_cal = 250
-
+        self.mag_cal = True
         ###
 
         self.Qt_w= []
@@ -98,28 +98,28 @@ class IMU:
         self.Yaw = []
 
 
-    # def MadgwickMagPrediction(self,qt_1, dq, beta, Ebt, Sm):
-    #     qw, qx, qy, qz= qt_1
-    #     bw, bx, by, bz = Ebt
-    #     mx, my, mz = Sm
-    #     #fb
-    #     f1=2*bx*(1/2-qy**2-qz**2)+2*bz*(qx*qz-qw*qy)-mx
-    #     f2=2*bx*(qx*qy-qw*qz)+2*bz*(qw*qx+qy*qz)-my
-    #     f3=2*bx*(qw*qy+qx*qz)+2*bz*(1/2-qx**2-qy**2)-mz
-    #     fb = np.array([[f1],[f2],[f3]])
-    #     #Jb
-    #     Jb = np.array([
-    #         [-2*bz*qy, 2*bz*qz, -4*bx*qy-2*bz*qw, -4*bx*qz+2*bz*qx],
-    #         [-2*bx*qz+2*bz*qx, 2*bx*qy+2*bz*qw, 2*bx*qx+2*bz*qz, -2*bx*qw+2*bz*qy],
-    #         [2*bx*qy, 2*bx*qz-4*bz*qx, 2*bx*qw-4*bz*qy, 2*bx*qx]
-    #         ])
-    #     Jb = Jb.T
+    def MadgwickMagPrediction(self,qt_1, dq, beta, Ebt, Sm):
+        qw, qx, qy, qz= qt_1
+        bw, bx, by, bz = Ebt
+        mx, my, mz = Sm
+        #fb
+        f1=2*bx*(1/2-qy**2-qz**2)+2*bz*(qx*qz-qw*qy)-mx
+        f2=2*bx*(qx*qy-qw*qz)+2*bz*(qw*qx+qy*qz)-my
+        f3=2*bx*(qw*qy+qx*qz)+2*bz*(1/2-qx**2-qy**2)-mz
+        fb = np.array([[f1],[f2],[f3]])
+        #Jb
+        Jb = np.array([
+            [-2*bz*qy, 2*bz*qz, -4*bx*qy-2*bz*qw, -4*bx*qz+2*bz*qx],
+            [-2*bx*qz+2*bz*qx, 2*bx*qy+2*bz*qw, 2*bx*qx+2*bz*qz, -2*bx*qw+2*bz*qy],
+            [2*bx*qy, 2*bx*qz-4*bz*qx, 2*bx*qw-4*bz*qy, 2*bx*qx]
+            ])
+        Jb = Jb.T
         
-    #     gradF = np.dot(Jb,fb)/np.linalg.norm(np.dot(Jb,fb))
-    #     dQmag = np.dot(beta,gradF)
-    #     dQmag = np.array([dQmag[0][0],dQmag[1][0],dQmag[2][0],dQmag[3][0]])
-    #     dQmag = (dq - dQmag)*self.dt
-    #     return dQmag
+        gradF = np.dot(Jb,fb)/np.linalg.norm(np.dot(Jb,fb))
+        dQmag = np.dot(beta,gradF)
+        dQmag = np.array([dQmag[0][0],dQmag[1][0],dQmag[2][0],dQmag[3][0]])
+        Qmag = qt_1 + (dq - dQmag)*self.dt
+        return Qmag
     
     def plotQuat(self,w,x,y,z,name:str):
         sample_interval = 0.01
@@ -223,9 +223,11 @@ class IMU:
         ###################################
         self.a0[3] = math.sqrt(self.a0[0]*self.a0[0] + self.a0[1]*self.a0[1] + self.a0[2]*self.a0[2])
             
-        self.theta0  =  np.arctan2(self.a0[1], self.a0[2])
-        self.phi0 = np.arctan2(-self.a0[0], math.sqrt(self.a0[1]*self.a0[1] + self.a0[2]*self.a0[2]))
+        # self.theta0  =  np.arctan2(self.a0[1], self.a0[2])
+        # self.phi0 = np.arctan2(-self.a0[0], math.sqrt(self.a0[1]*self.a0[1] + self.a0[2]*self.a0[2]))
         self.psi0 = 0.0
+        self.theta0  =  np.arctan2(self.aXread, math.sqrt(self.aYread**2 + self.aZread**2))
+        self.phi0 = np.arctan2(self.aYread, math.sqrt(self.aXread**2 + self.aZread**2))
 
         q1,q2,q3,q4 = self.Euler2Q(self.phi0,self.theta0,self.psi0)
         normQ = np.sqrt(q1*q1 + q2*q2 + q3*q3 + q4*q4)
@@ -282,16 +284,23 @@ class IMU:
 
         return rotated_vector
     
-    def adaptative_alpha(self,acc_v,max_alpha = 0.2,G= 9.80665):   
-        L_norm= np.linalg.norm(acc_v)
-        e_m= abs(L_norm-G)/G
+    def adaptative_alpha(self,acc_v,max_alpha = 0.2,G= 9.80665):  
+        #vector aceleración, alpha máximo, gravedad
+
+        L_norm= np.linalg.norm(acc_v)  #||a||
+        e_m= abs(L_norm-G)/G #error de la medida
+
+        #función de ganancia
         if e_m < 0.1:
             gain_factor = 1
         elif e_m >= 0.1 and e_m <0.2:
             gain_factor = 1-10*(e_m-0.1)
         elif e_m >= 0.2:
             gain_factor = 0
+
+        #alpha adaptativo   
         alpha= max_alpha * gain_factor
+
         return alpha
     
     def update(self):
@@ -302,31 +311,40 @@ class IMU:
         p = self.gXread - self.g0[0]
         q = self.gYread - self.g0[1]
         r = self.gZread - self.g0[2]
-        
+        mX = self.mXread - self.m0[0]
+        mY = self.mYread - self.m0[1]
+        mZ = self.mZread - self.m0[2]
+        mag = [mX, mY, mZ]
+        mag = mag/np.linalg.norm(mag) # normalización del vector magnetómetro
+
         #Predicción cuaternión G->L
+
+        # se accede al último cuaternión
         qt_1 = np.array([self.quaternion[0][-1], self.quaternion[1][-1], self.quaternion[2][-1],self.quaternion[3][-1]])
+        # se calcula la forma matricial de la velocidad angular
         omegaW = [[0, p, q , r], [-p, 0, r, -q], [-q, -r, 0, p], [-r, q, -p, 0]]
+        # se calcula el diferencial del cuaternión
         dQ = np.dot(omegaW, qt_1)
+        # se calcula el cuaternión predicho
         Qt = qt_1 + dQ*self.dt
         
-        # #Consideración para la IMU 4 (Revisar)
-        # if self.key_binding == "GROOT_04":
-        #     acc = [aX, aZ, aY]
 
         #Predicción del vector gravedad
-        gGp = self.rotate_vector_inverted(acc, Qt)         
-        norm_gGp = gGp/np.linalg.norm(gGp)
+        gGp = self.rotate_vector_inverted(acc, Qt) #medidas de acelerómetro en el marco global     
+        norm_gGp = gGp/np.linalg.norm(gGp) # normalización del cuaternión gravedad predicha
 
-        #Fórmula matemática del corrector de aceleración
+        #Componentes del cuaternión corrector de aceleración despejadas
         dQacc0 = math.sqrt((norm_gGp[2]+1)/2)
         dQacc1 = -norm_gGp[1]/(math.sqrt(2*(norm_gGp[2]+1)))
         dQacc2 = norm_gGp[0]/math.sqrt(2*(norm_gGp[2]+1))
         dQacc3 = 0
-        dQacc = np.array([dQacc0, dQacc1, dQacc2, dQacc3])
 
+        #Cuaternión corrector de aceleración
+        dQacc = np.array([dQacc0, dQacc1, dQacc2, dQacc3]) 
+        
         #Filtro de corrección
         threshold = 0.9
-        alpha = self.adaptative_alpha(acc, max_alpha= 1, G= 9.80665)
+        alpha = self.adaptative_alpha(acc, max_alpha= 0.3, G= 9.80665)
         qI = np.array([1, 0, 0, 0])
 
 
@@ -351,15 +369,32 @@ class IMU:
             dQacc_est = dQacc_m / np.linalg.norm(dQacc_m)
 
         #Quaternion corregido por acc
-        Qpost = self.quatProduct(Qt,dQacc_est)
-        # wpost, xpost, ypost, zpost = Qpost
-        w, x, y, z = Qpost #en caso de desactivar el magnetómetro, aqui se toma el quaternion final
+        Qacc = self.quatProduct(Qt,dQacc_est)
+        w, x, y, z = Qacc #en caso de desactivar el magnetómetro, aqui se toma el quaternion final
 
+        #Magnetómetro
         #---------------------------------------------------------------------------
-        #Aqui iba el código de corrección por magnetómetro.
+        if self.mag_cal == True:
+            
+            Eh= self.rotate_vector(mag,Qacc)
+
+            Eb0 = 0
+            Eb1 = np.sqrt(Eh[0]**2+Eh[1]**2)
+            Eb2 = 0
+            Eb3 = Eh[2]
+            Eb = np.array([Eb0,Eb1,Eb2,Eb3])
+
+            #Predicción de la orientación con corrector magnético
+            mean_g0= (self.g0[0] + self.g0[1] + self.g0[2])/ 3
+            beta = np.sqrt(3/4)* mean_g0
+            #beta = 1
+            Qmag= self.MadgwickMagPrediction(qt_1, dQ, beta, Eb, mag)
+            # filtro complementario
+            gamma = 0.2
+            Qf= gamma*Qmag + (1-gamma)*Qacc
+            w, x, y, z = Qf        
         #---------------------------------------------------------------------------
-                 
-        #Quaternion final normalizado
+            #Quaternion final normalizado
         Qf= np.array([w,x,y,z])
         Qfnorm= np.linalg.norm(Qf)
         w = w/Qfnorm
@@ -398,17 +433,30 @@ class IMU:
             )
         
     def callback(self,ch, method, propierties, body):
-        datos = json.loads(body)
-        if self.conteo <= 250:
-            self.initialCalibration(datos)
+        datos = json.loads(body) #carga los datos del mensaje en formato lista
+        if self.conteo <= 250: 
+            self.initialCalibration(datos) #guarda los datos de las primeras 249 lecturas
             self.conteo += 1   
             if self.conteo == 250:
-                self.calcCal()
+                self.calcCal() #al llegar a 250 lecturas, calcula los offsets
                 self.conteo +=1
-        else:
+                print("""
+#####################################
+#####################################
+Calibración finalizada. Puede moverse.
+#####################################
+#####################################
+                      """)
+        elif self.inicio: #si ya se ha hecho la calibración, comienza el proceso normal de lectura
             self.readData(datos)
             self.update()
             self.conteo+=1
+            # print('Conteo:',self.conteo)  
+        else: #después, comienza el proceso normal de lectura
+            self.readData(datos)
+            self.update()
+            self.conteo+=1
+            
             # print('Conteo:',self.conteo)
     def stop(self):
         if self.process and self.process.is_alive():
