@@ -344,7 +344,7 @@ class IMU:
         
         #Filtro de corrección
         threshold = 0.9
-        alpha = self.adaptative_alpha(acc, max_alpha= 0.3, G= 9.80665)
+        alpha = self.adaptative_alpha(acc, max_alpha= 0.2, G= 9.80665)
         qI = np.array([1, 0, 0, 0])
 
 
@@ -390,7 +390,7 @@ class IMU:
             #beta = 1
             Qmag= self.MadgwickMagPrediction(qt_1, dQ, beta, Eb, mag)
             # filtro complementario
-            gamma = 0.2
+            gamma = 0.3
             Qf= gamma*Qmag + (1-gamma)*Qacc
             w, x, y, z = Qf        
         #---------------------------------------------------------------------------
