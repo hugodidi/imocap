@@ -46,25 +46,43 @@ def readcsv(archivo):
         for row in reader:
             datos.append(row)
     return datos
+
+def normfunction100(data_deg, rangeMin, rangeMax):
+    data = data_deg[rangeMin:rangeMax]
+    N = len(data)
+    x_old = np.linspace(0, 99, N)   # dominio original (0–99 %)
+    x_new = np.arange(100)          # destino: 100 instancias
+
+    # Para ángulos en grados: desenrollar - interpolar - enrollar
+    rad = np.deg2rad(data)
+    u   = np.unwrap(rad)
+    u_i = np.interp(x_new, x_old, u)
+    y   = (u_i + np.pi) % (2*np.pi) - np.pi
+    return np.rad2deg(y)            # 100 puntos normalizados 
+
 def filter_Test(window):
-    noisesignal = readcsv('Ly-output-raw.csv') 
+    noisesignal = readcsv('C:/Users/Usuario/Desktop/output.csv') 
+
     for i in range(len(noisesignal)):
-        noisesignal[i]= noisesignal[i][0] 
-        noisesignal[i]= float(noisesignal[i])
+        noisesignal[i]= float(noisesignal[i][0]) + r.uniform(-0.005, 0.005)
+        random_p = r.randint(0, 1000)
+        if random_p < 15:
+            noisesignal[i] = noisesignal[i] + r.uniform(-0.3, 0.3)
+
     processedsignal= []
     filter1 = slidingRMS(window)
     for i in range(len(noisesignal)):
         processedsignal.append(filter1.process(float(noisesignal[i])))
 
     sample_interval = 0.01
-    n = len(processedsignal)
+    n = len(processedsignal[1000:2500])
     t = np.arange(n) * sample_interval
     plt.figure()
-    plt.plot(t, processedsignal,  label='Signal')
+    plt.plot(t, processedsignal[1000:2500],  label='Signal')
     plt.xlabel("Tiempo (s)")
-    plt.ylabel("microT")
+    plt.ylabel("Value")
     plt.title("Processed Signal")
-    plt.ylim(min(processedsignal) - 100, max(processedsignal) + 100)
+    plt.ylim(min(processedsignal) - 0.5, max(processedsignal) + 0.5)
     plt.legend()
     plt.grid(True)
 
@@ -74,12 +92,13 @@ def filter_Test(window):
     plt.figure()
     plt.plot(t, noisesignal,  label='Signal')
     plt.xlabel("Tiempo (s)")
-    plt.ylabel("microT")
+    plt.ylabel("Value")
     plt.title("Noise Signal")
-    plt.ylim(min(noisesignal) - 100, max(noisesignal) + 100)
+    plt.ylim(min(processedsignal) - 0.5, max(processedsignal) + 0.5)
     plt.legend()
     plt.grid(True)
+    normfunction100(processedsignal, 1000, 2500)    
+    
 
-    plt.show()
-
-#filter_Test(150)
+filter_Test(100)
+plt.show()
