@@ -25,6 +25,14 @@ import winrt.windows.foundation.collections
 host = '127.0.0.1'
 port = 25001
 
+def quatP(Q,P = np.array([0.5,0.5,0.5,0.5])):
+        w = Q[0]*P[0] - Q[1]*P[1] - Q[2]*P[2] - Q[3]*P[3]
+        x = Q[0]*P[1] + Q[1]*P[0] + Q[2]*P[3] - Q[3]*P[2]
+        y = Q[0]*P[2] - Q[1]*P[3] + Q[2]*P[0] + Q[3]*P[1]
+        z = Q[0]*P[3] + Q[1]*P[2] - Q[2]*P[1] + Q[3]*P[0]
+        Qf= np.array([w,x,y,z])
+        return Qf
+
 #Función para instalar RabbitMQ y Erlang si no están instalados 
 def install_rabbitmq(mqrabbit, erlang):
     if not os.path.exists("C:\\Program Files\\RabbitMQ Server"):
@@ -115,10 +123,10 @@ def start_receiver(binding_keys, stop_event, main_event):
                 
                 values = json.loads(body.decode('utf-8'))
                 qw,qx,qy,qz = values
-
+                qw,qx,qy,qz = quatP(np.array([qw,qx,qy,-qz]))
                 ## Lite message version
-                message = f"{qx},{qy},{-qz},{qw}\n"
-                print(message)
+                message = f"{method.routing_key},{qx},{qy},{qz},{qw}\n"
+                # print(message)
 
                 try:
                     client_socket.sendall(message.encode())
