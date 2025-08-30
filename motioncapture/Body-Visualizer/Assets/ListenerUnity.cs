@@ -47,6 +47,12 @@ public class QuaternionReceiverWithInitial : MonoBehaviour
     [Tooltip("Muestra un panel con el estado ON/OFF de cada IMU configurada")]
     public bool showStatus = true;
 
+    // === NUEVO: ángulos anatómicos (grados) capturados de las rotaciones locales ===
+    [Header("Ángulos anatómicos (deg) — brazo derecho")]
+    public Vector3 shoulderEulerDeg; // Hombro (RightUpperArm local)
+    public Vector3 elbowEulerDeg;    // Codo   (RightLowerArm local)
+    public Vector3 wristEulerDeg;    // Muñeca (RightHand local)
+
     // --- Estado red/parseo ---
     private CancellationTokenSource _cts;
     private Task _listenerTask;
@@ -260,11 +266,13 @@ public class QuaternionReceiverWithInitial : MonoBehaviour
         // 2) Aplicar de PADRE a HIJO para evitar dobles: UpperArm → LowerArm → Hand
 
         // BÍCEPS
+        bool anyApplied = false;
         if (worldUpper.HasValue)
         {
             var parentWorld = _parentUpperArm ? _parentUpperArm.rotation : Quaternion.identity;
             var local = Quaternion.Inverse(parentWorld) * worldUpper.Value;
             _boneUpperArm.localRotation = local;
+            anyApplied = true;
         }
 
         // ANTEBRAZO
@@ -273,6 +281,7 @@ public class QuaternionReceiverWithInitial : MonoBehaviour
             var parentWorld = _parentLowerArm ? _parentLowerArm.rotation : Quaternion.identity;
             var local = Quaternion.Inverse(parentWorld) * worldLower.Value;
             _boneLowerArm.localRotation = local;
+            anyApplied = true;
         }
 
         // MANO
@@ -281,6 +290,13 @@ public class QuaternionReceiverWithInitial : MonoBehaviour
             var parentWorld = _parentHand ? _parentHand.rotation : Quaternion.identity;
             var local = Quaternion.Inverse(parentWorld) * worldHand.Value;
             _boneHand.localRotation = local;
+            anyApplied = true;
+        }
+
+        // === NUEVO: capturar y mostrar los ángulos en grados (solo si hubo actualización este frame)
+        if (anyApplied)
+        {
+            CaptureAndLogRightArmAngles();
         }
     }
 
@@ -337,5 +353,20 @@ public class QuaternionReceiverWithInitial : MonoBehaviour
             }
         }
         return false;
+    }
+
+    // === NUEVO: captura y log de ángulos anatómicos (Euler) del brazo derecho ===
+    private void CaptureAndLogRightArmAngles()
+    {
+        // Las rotaciones locales ya son relativas (anatómicas) por cómo se aplican arriba
+        shoulderEulerDeg = _boneUpperArm.localRotation.eulerAngles;
+        elbowEulerDeg    = _boneLowerArm.localRotation.eulerAngles;
+        wristEulerDeg    = _boneHand.localRotation.eulerAngles;
+
+        Debug.Log(
+            $"Hombro: [{shoulderEulerDeg.x:F1}, {shoulderEulerDeg.y:F1}, {shoulderEulerDeg.z:F1}] | " +
+            $"Codo: [{elbowEulerDeg.x:F1}, {elbowEulerDeg.y:F1}, {elbowEulerDeg.z:F1}] | " +
+            $"Muñeca: [{wristEulerDeg.x:F1}, {wristEulerDeg.y:F1}, {wristEulerDeg.z:F1}]"
+        );
     }
 }

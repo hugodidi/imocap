@@ -456,6 +456,9 @@ MonoBehaviour:
     target: 2
     debugLastLine: 
   showStatus: 1
+  shoulderEulerDeg: {x: 0, y: 0, z: 0}
+  elbowEulerDeg: {x: 0, y: 0, z: 0}
+  wristEulerDeg: {x: 0, y: 0, z: 0}
 --- !u!95 &1143772446 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 49a8cafd2af9ed141860549a8a281c31, type: 3}
