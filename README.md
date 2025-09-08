@@ -2,7 +2,7 @@
 title: imocap – README
 tags: [imocap, imu, unity, rabbitmq, gait, biomecánica, python, csharp]
 ---
-
+*Se recomienda encarecidamente abrir el documento a través de Obsidian para la legibilidad y aprovechamiento de links*
 # Diseño e implementación de algoritmos de captura de movimiento y procesamiento biomecánico inteligente (imocap)
 
 Sistema modular para **captura de movimiento con IMUs**, **estimación de actitud** (cuaterniones), **streaming a Unity** y **procesamiento biomecánico** (filtros y análisis de marcha con autoencoders).
