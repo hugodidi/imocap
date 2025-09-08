@@ -32,6 +32,34 @@ def quatP(Q,P = np.array([0.5,0.5,0.5,0.5])):
         z = Q[0]*P[3] + Q[1]*P[2] - Q[2]*P[1] + Q[3]*P[0]
         Qf= np.array([w,x,y,z])
         return Qf
+def Q2Euler(q1,q2,q3,q4):
+    argPhi1 = 2*(q3*q4 + q1*q2)
+    argPhi2 = 1 - 2*(q2*q2 + q3*q3)
+    argTheta = 2*(q1*q3-q2*q4)
+    argPsi1 = 2*(q2*q3 + q1*q4)
+    argPsi2 = 1 - 2*(q3*q3 + q4*q4)
+    #if abs(argTheta) > 1: 
+    #    argTheta = argTheta/abs(argTheta)
+    phi = np.arctan2(argPhi1, argPhi2)
+    if np.abs(argTheta) >= 1:
+        theta = np.sign(argTheta) * np.pi / 2
+    else:
+        theta = np.arcsin(argTheta)
+    psi = np.arctan2(argPsi1, argPsi2)
+    return phi,theta,psi
+
+def Euler2Q( phi, theta, psi):
+        sinPhi = np.sin(phi/2)
+        cosPhi = np.cos(phi/2)
+        sinTheta = np.sin(theta/2)
+        cosTheta = np.cos(theta/2)
+        sinPsi = np.sin(psi/2)
+        cosPsi = np.cos(psi/2)
+        q1 = cosPhi*cosTheta*cosPsi + sinPhi*sinTheta*sinPsi
+        q2 = sinPhi*cosTheta*cosPsi - cosPhi*sinTheta*sinPsi
+        q3 = cosPhi*sinTheta*cosPsi + sinPhi*cosTheta*sinPsi
+        q4 = cosPhi*cosTheta*sinPsi - sinPhi*sinTheta*cosPsi
+        return q1,q2,q3,q4 
 
 #Función para instalar RabbitMQ y Erlang si no están instalados 
 def install_rabbitmq(mqrabbit, erlang):
@@ -89,6 +117,7 @@ def proceso_imu(nombre, stop_event):
 
 # Receptor de datos de orietación y distribución a Unity
 def start_receiver(binding_keys, stop_event, main_event):
+    quaternion_data =  []
     try:
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -122,11 +151,12 @@ def start_receiver(binding_keys, stop_event, main_event):
                     print("Calibración finalizada. Puede moverse.")
                 
                 values = json.loads(body.decode('utf-8'))
-                qw,qx,qy,qz = values
-                qw,qx,qy,qz = quatP(np.array([qw,qx,qy,-qz]))
-                ## Lite message version
-                message = f"{method.routing_key},{qx},{qy},{qz},{qw}\n"
-                # print(message)
+                qw,qx,qy,qz = values #llega el cuaternion
+                # qw,qx,qy,qz = quatP(np.array([qw,qx,qy,-qz])) #corrección eje unity (para Body-V, descomentar y eliminar signo de qz en mensaje)
+                # Lite message version
+                message = f"{method.routing_key},{qx},{qy},{-qz},{qw}\n"
+                angulos = Q2Euler(qw,qx,qy,qz)
+                #print("roll: %.2f pitch: %.2f yaw: %.2f" % (math.degrees(angulos[0]), math.degrees(angulos[1]), math.degrees(angulos[2])))
 
                 try:
                     client_socket.sendall(message.encode())
@@ -174,12 +204,12 @@ def start_receiver(binding_keys, stop_event, main_event):
         except UnboundLocalError:
             print("La conexión de RabbitMQ no fue creada")
 
-        # if client_socket:
-        #    try:
-        #        client_socket.close()
-        #        print("Socket con Unity cerrado.")
-        #    except Exception as e:
-        #        print(f"Error cerrando socket con Unity: {e}")
+        if client_socket:
+           try:
+               client_socket.close()
+               print("Socket con Unity cerrado.")
+           except Exception as e:
+               print(f"Error cerrando socket con Unity: {e}")
         return
 
 
@@ -253,3 +283,6 @@ if __name__ == "__main__":
         print("Cerrando procesos...")
         print("Procesos finalizados correctamente.")
         cleanup()
+    
+
+    

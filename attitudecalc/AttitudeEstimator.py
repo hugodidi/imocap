@@ -89,7 +89,7 @@ class IMU:
         self.Qt_x= []
         self.Qt_y= []
         self.Qt_z= []
-
+        
         ###
         
         self.plotTime = []
@@ -162,19 +162,14 @@ class IMU:
             self.mXread=float(data_to_process[0])*0.15
             self.mYread=float(data_to_process[1])*0.15
             self.mZread=float(data_to_process[2])*0.15
+            # Mmod = math.sqrt(self.mXread*self.mXread + self.mYread*self.mYread + self.mZread*self.mZread)
             self.aXread=float(data_to_process[3])*9.80665/16384
             self.aYread=float(data_to_process[4])*9.80665/16384
             self.aZread=float(data_to_process[5])*9.80665/16384
             self.gXread=float(data_to_process[6])*math.pi/(131*180)
             self.gYread=float(data_to_process[7])*math.pi/(131*180)
             self.gZread=float(data_to_process[8])*math.pi/(131*180)
-            # print(round(self.aXread,2),"\t",
-                #   round(self.aYread,2),"\t",
-                #   round(self.aZread,2),"\t",
-                #   round(self.gXread,2),"\t",
-                #   round(self.gYread,2),"\t",
-                #   round(self.gZread,2))
-            # self.time_cicle.append(data_to_process[11])
+            # print(str(round(self.aXread,3))+'; '+str(round(self.aYread,3))+'; '+str(round(self.aZread,3))+'; '+str(round(self.gXread,3))+'; '+str(round(self.gYread,3))+'; '+str(round(self.gZread,3))+'; '+str(round(self.mXread,1))+'; '+str(round(self.mYread,1))+'; '+str(round(self.mZread,1)) + ';      '+str(round(Mmod,1)))
             self.time_cicle.append(self.conteo*10+10) #provisional
         #print(str(self.time_cicle))
         if len(self.time_cicle) == 2:
@@ -235,6 +230,7 @@ class IMU:
         self.quaternion[1].append(q2/normQ)
         self.quaternion[2].append(q3/normQ)
         self.quaternion[3].append(q4/normQ)
+
 
     def quatProduct(self,Q,P):
         w = Q[0]*P[0] - Q[1]*P[1] - Q[2]*P[2] - Q[3]*P[3]
@@ -311,9 +307,10 @@ class IMU:
         p = self.gXread - self.g0[0]
         q = self.gYread - self.g0[1]
         r = self.gZread - self.g0[2]
-        mX = self.mXread - self.m0[0]
-        mY = self.mYread - self.m0[1]
-        mZ = self.mZread - self.m0[2]
+        mX = self.mXread  -113.025  #- self.m0[0]
+        mY = self.mYread  -64.375   #- self.m0[1]
+        mZ = self.mZread  -347.575  #- self.m0[2]
+        print(round(mX,1), round(mY,1), round(mZ,1))
         mag = [mX, mY, mZ]
         mag = mag/np.linalg.norm(mag) # normalización del vector magnetómetro
 
@@ -386,7 +383,7 @@ class IMU:
 
             #Predicción de la orientación con corrector magnético
             mean_g0= (self.g0[0] + self.g0[1] + self.g0[2])/ 3
-            beta = np.sqrt(3/4)* mean_g0
+            beta = 0.2
             #beta = 1
             Qmag= self.MadgwickMagPrediction(qt_1, dQ, beta, Eb, mag)
             # filtro complementario
@@ -420,18 +417,28 @@ class IMU:
         self.Datawrite_sync[1] = float(round(x,3))
         self.Datawrite_sync[2] = float(round(y,3))
         self.Datawrite_sync[3] = float(round(z,3))
-
         self.plotTime.append(self.time_cicle[0])
-        self.Roll.append(thetaF)
-        self.Pitch.append(phiF)
-        self.Yaw.append(psiF)
+
+        # if self.conteo > 251:
+
+        self.Roll.append(np.rad2deg(thetaF))
+        self.Pitch.append(np.rad2deg(phiF))
+        self.Yaw.append(np.rad2deg(psiF))
 
         self.channel.basic_publish(
                 exchange='topic_Proc',
                 routing_key=self.key_binding,
                 body=json.dumps(self.Datawrite_sync)
             )
-        
+
+    def mean_std(self, data_deg):
+        a = np.deg2rad(data_deg)
+        C, S = np.mean(np.cos(a)), np.mean(np.sin(a))
+        mean = np.rad2deg(np.arctan2(S, C))              # media circular
+        R = np.hypot(C, S)
+        std = np.rad2deg(np.sqrt(-2*np.log(max(R, 1e-12))))  # desviación circular
+        return mean, std
+
     def callback(self,ch, method, propierties, body):
         datos = json.loads(body) #carga los datos del mensaje en formato lista
         if self.conteo <= 250: 
@@ -447,17 +454,21 @@ Calibración finalizada. Puede moverse.
 #####################################
 #####################################
                       """)
-        elif self.inicio: #si ya se ha hecho la calibración, comienza el proceso normal de lectura
-            self.readData(datos)
-            self.update()
-            self.conteo+=1
-            # print('Conteo:',self.conteo)  
         else: #después, comienza el proceso normal de lectura
-            self.readData(datos)
-            self.update()
-            self.conteo+=1
-            
-            # print('Conteo:',self.conteo)
+            if self.conteo<10000000000:
+                self.readData(datos)
+                self.update()
+                self.conteo+=1
+                # print("yaw:",round(self.Yaw[-1],2), "\tpitch:", round(self.Pitch[-1],2),"\t2roll:",round(self.Roll[-1],2))
+                # print(self.conteo)
+            # elif self.conteo == 2250:
+            #     yawm,yawstd= self.mean_std(self.Yaw)
+            #     pitchm,pitchstd= self.mean_std(self.Pitch)
+            #     rollm,rollstd= self.mean_std(self.Roll)
+            #     print(f"Yaw medio: {yawm:.2f}º, STD: {yawstd:.2f}º | Pitch medio: {pitchm:.2f}º, STD: {pitchstd:.2f}º | Roll medio: {rollm:.2f}º, STD: {rollstd:.2f}º")
+            #     # print('Conteo:',self.conteo)
+            else:
+                pass
     def stop(self):
         if self.process and self.process.is_alive():
             print("Deteniendo el proceso IMU...")

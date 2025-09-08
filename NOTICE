@@ -1,0 +1,21 @@
+Third-Party Notices for imocap
+
+DATASET (UCI Machine Learning Repository)
+- Nombre: Multivariate Gait Data
+- Autores/Creadores: Nathaniel Helwig; Elizabeth Hsiao-Wecksler
+- DOI: https://doi.org/10.24432/C5861T
+- Página del dataset: https://archive.ics.uci.edu/dataset/760/multivariate%2Bgait%2Bdata
+- Licencia: Creative Commons Attribution 4.0 International (CC BY 4.0)
+- Atribución recomendada:
+  Helwig, N. & Hsiao-Wecksler, E. (2016). Multivariate Gait Data [Dataset].
+  UCI Machine Learning Repository. https://doi.org/10.24432/C5861T
+- Nota: El dataset NO es propiedad de imocap; su uso y redistribución
+  se rigen por su licencia original (CC BY 4.0). Por favor, conserva esta atribución.
+
+MIXAMO (Adobe)
+- Se han utilizado personajes/animaciones de Adobe Mixamo.
+- Términos de uso relevantes (resumen): Mixamo está disponible gratis con Adobe ID.
+  Los personajes y animaciones pueden usarse "royalty-free" para proyectos personales,
+  comerciales y sin ánimo de lucro, según la FAQ oficial de Adobe.
+- FAQ: https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html
+- Nota: la atribución a Adobe/Mixamo no es obligatoria, aunque puede incluirse como cortesía.
