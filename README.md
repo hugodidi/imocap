@@ -2,8 +2,6 @@
 title: imocap – README
 tags: [imocap, imu, unity, rabbitmq, gait, biomecánica, python, csharp]
 ---
-*Se recomienda encarecidamente abrir el documento a través de Obsidian para la legibilidad y aprovechamiento de links*
-# Diseño e implementación de algoritmos de captura de movimiento y procesamiento biomecánico inteligente (imocap)
 
 Sistema modular para **captura de movimiento con IMUs**, **estimación de actitud** (cuaterniones), **streaming a Unity** y **procesamiento biomecánico** (filtros y análisis de marcha con autoencoders).
 
@@ -16,47 +14,79 @@ Sistema modular para **captura de movimiento con IMUs**, **estimación de actitu
 
 ## Tabla de contenidos
 
-[[README.md#Estructura del repo|Estructura del repo]]  
-[[README.md#Arquitectura|Arquitectura]]  
-[[README.md#Requisitos|Requisitos]]  
-[[README.md#Instalación|Instalación]]  
-[[README.md#Configuración|Configuración]]  
-[[README.md#Ejecución rápida|Ejecución rápida]]  
-[[README.md#Contratos de mensajería|Contratos de mensajería]]  
-[[README.md#Módulos|Módulos]]  
-[[README.md#attitudecalc/|attitudecalc/]]  
-[[README.md#motioncapture/|motioncapture/]]  
-[[README.md#ibioprocessing/|ibioprocessing/]]  
-[[README.md#GaitAnalysis (score 0–100)|GaitAnalysis (score 0–100)]]  
-[[README.md#Solución de problemas|Solución de problemas]]  
-[[README.md#Roadmap|Roadmap]]  
-[[README.md#Licencia|Licencia]]
+[Estructura del repo](#estructura-del-repo) 
+
+[Requisitos](#requisitos)
+
+[Instalación](#instalación)  
+
+[Configuración](#configuración)  
+
+[Ejecución rápida](#ejecución-rápida)  
+
+[Contratos de mensajería](#contratos-de-mensajería)  
+
+[Módulos](#módulos)  
+
+[attitudecalc/](#attitudecalc)  
+
+[motioncapture/](#motioncapture)  
+
+[ibioprocessing/](#ibioprocessing)  
+
+[GaitAnalysis (score 0–100)](#gaitanalysis-score-0100)  
+
+[Solución de problemas](#solución-de-problemas)  
+
+[Licencia](#licencia)  
+
+
+
 
 ---
 
 ## Estructura del repo
 
 imocap/
+
 ├─ .gitignore 
+
 ├─ README.md
+
 ├─ requirements.txt
+
 ├─ LICENSE
+
 ├─ NOTICE
+
 ├─ attitudecalc/
+
 │  ├─ main.py                # orquestación + puente TCP a Unity
+
 │  ├─ AttitudeEstimator.py   # fusión sensorial (cuaterniones)
+
 │  ├─ BTClassV2_multiplex.py # BLE multiplexer → RabbitMQ
+
 │  └─ .gitignore             # excluye pychache/ etc.
+
 ├─ ibioprocessing/
+
 │  ├─ GaitData/gait.csv     # slidingRMS, normfunction100
+
 │  ├─ noiseRMS_filter.py     # slidingRMS, normfunction100
+
 │  └─ GaitAnalysisIA.ipynb   # cuaderno: autoencoders + score
+
 └─ motioncapture/
+
    ├─ Body-Visualizer/Assets/ListenerUnity.cs           # Humanoid (Animator + mapeo huesos)
+   
    ├─ IMU-Visualizer/Assets/ListenerUnity-Lite.cs      # versión simple (objeto único)
+   
    └─ .gitignore                                                          # específico para Unity
 
 ---
+
 ## Requisitos
 
 - **Sistema**: Windows 10/11 recomendado (BLE + RabbitMQ local).
